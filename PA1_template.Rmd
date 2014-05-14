@@ -1,9 +1,47 @@
 # Reproducible Research: Peer Assessment 1
+Prepared by Amperio; last version created `r date()`
 
+```{r options_setting, echo=TRUE, results='asis'}
+```
 
 ## Loading and preprocessing the data
+_**Note**: it is assumed that the data has been obtained in its 'original' form, as a compressed file named 'activity.zip' that contains a file named 'activity.csv' with the actual data. The format of this data file is the one presented in the Assignment introduction._
 
+The steps for loading and processing the data are the following:
 
+1. Read the data from the zipped file (using the 'unz' function within the 'read.csv'), with comma as a separator and using the first row for the filed names:
+
+   ```{r}
+   data <- read.csv(unz("activity.zip", "activity.csv"), header = TRUE, sep = ",")
+   ```
+
+2. Show some records at the start and the end of the data to make sure that the data has been read correctly:
+
+   ```{r}
+   head(data)
+   tail(data)
+   ```
+
+3. As it will be useful later in the analysis, we calculate the average number of steps by 5-minutes intervals accross all the days, and store it as a separate column in the data frame:
+   ```{r}
+   data.steps_by_interval <- split(data$steps, data$interval)
+   data.mean_steps_by_interval <- as.integer(lapply(data.steps_by_interval, mean, na.rm=TRUE))
+   data <- cbind(data, data.mean_steps_by_interval)
+   colnames(data)[4] <- "avg_steps_in_interval"
+   ```
+
+4. It will also be useful to identify each date as a 'weekday' or 'weekend'; we therefore transform the 'date' variable into a separate one indicating the weekday number (1 is Monday, 2 is Tuesday, etc.):
+   ```{r}
+   data.dates_as_numbers <- strftime(as.Date(data$date), format = "%u")
+   data <- cbind(data, data.dates_as_numbers)
+   colnames(data)[5] <- "weekday_number"
+   ```
+
+5. The final data frame is therefore:
+   ```{r}
+   head(data)
+   tail(data)
+   ```
 
 ## What is mean total number of steps taken per day?
 
