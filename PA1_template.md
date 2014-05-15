@@ -1,5 +1,5 @@
 # Reproducible Research: Peer Assessment 1
-Prepared by Amperio; last version created Thu May 15 05:34:42 2014
+Prepared by Amperio; last version created Thu May 15 20:45:32 2014
 
 
 
@@ -13,11 +13,12 @@ The steps for loading and processing the data are the following:
 
    
    ```r
-   data <- read.csv(unz("activity.zip", "activity.csv"), header = TRUE, sep = ",")
+   data <- read.csv(unz("activity.zip", "activity.csv"), header = TRUE, sep = ",", 
+       stringsAsFactors = FALSE)
    ```
 
 
-2. Show some records at the start and the end of the data to make sure that the data has been read correctly:
+   Show some records at the start and the end of the data to make sure that it has been read correctly:
 
    
    ```r
@@ -48,24 +49,60 @@ The steps for loading and processing the data are the following:
    ## 17568    NA 2012-11-30     2355
    ```
 
+2. We adapt the types and appearance of the 'date' and 'interval' columns, to make them more useful or prettier:
+   
+   ```r
+   # 'date' column as Dates:
+   data$date <- as.Date(data$date)
+   
+   # 'interval' column as 4-characters strings, padded at left with '0':
+   data$interval <- as.character(formatC(data$interval, width = 4, flag = "0"))
+   
+   head(data)
+   ```
+   
+   ```
+   ##   steps       date interval
+   ## 1    NA 2012-10-01     0000
+   ## 2    NA 2012-10-01     0005
+   ## 3    NA 2012-10-01     0010
+   ## 4    NA 2012-10-01     0015
+   ## 5    NA 2012-10-01     0020
+   ## 6    NA 2012-10-01     0025
+   ```
+
 
 3. As it will be useful later in the analysis, we calculate the average number of steps by 5-minutes intervals across all the days, and store it as a separate column in the data frame:
    
    ```r
+   # Split the data by 'interval':
    data.steps_by_interval <- split(data$steps, data$interval)
+   
+   # Calculate the average steps by each 'interval', across all days:
    data.avg_steps_by_interval <- as.integer(lapply(data.steps_by_interval, mean, 
        na.rm = TRUE))
-   data <- cbind(data, data.avg_steps_by_interval)
-   colnames(data)[4] <- "avg_steps_in_interval"
+   
+   # Store the average steps for each 'interval' in the same data.frame:
+   data <- data.frame(data, data.avg_steps_by_interval)
+   colnames(data)[ncol(data)] <- "avg_steps_in_interval"
    ```
 
 
-4. It will also be useful to identify each date as a 'weekday' or 'weekend'; we therefore transform the 'date' variable into a separate one indicating the weekday number (1 is Monday, 2 is Tuesday, etc.):
+4. It will also be useful to identify each date as a 'weekday' or 'weekend'; thus we create a new factor column using 'strftime' instead of the suggested 'weekdays' as the latter requires managing string constants ('Sunday', 'Monday', etc.) which change depending on the locale (for instance, my machine with a O.S. in Spanish returns 'Domingo' instead of 'Sunday' with 'weekdays'):
    
    ```r
+   # Find out what weekday number is each 'date':
    data.dates_as_numbers <- strftime(as.Date(data$date), format = "%u")
-   data <- cbind(data, data.dates_as_numbers)
-   colnames(data)[5] <- "weekday_number"
+   
+   # Identify weekends (and, by exclusion, weekdays):
+   data.dates_are_weekend <- data.dates_as_numbers == "6" | data.dates_as_numbers == 
+       "7"
+   
+   # Convert the data into a factor and store it in the original data frame:
+   data.dates_are_weekend <- factor(data.dates_are_weekend)
+   levels(data.dates_are_weekend) <- c("weekday", "weekend")
+   data <- data.frame(data, data.dates_are_weekend)
+   colnames(data)[ncol(data)] <- "day_type"
    ```
 
 
@@ -76,13 +113,13 @@ The steps for loading and processing the data are the following:
    ```
    
    ```
-   ##   steps       date interval avg_steps_in_interval weekday_number
-   ## 1    NA 2012-10-01        0                     1              1
-   ## 2    NA 2012-10-01        5                     0              1
-   ## 3    NA 2012-10-01       10                     0              1
-   ## 4    NA 2012-10-01       15                     0              1
-   ## 5    NA 2012-10-01       20                     0              1
-   ## 6    NA 2012-10-01       25                     2              1
+   ##   steps       date interval avg_steps_in_interval day_type
+   ## 1    NA 2012-10-01     0000                     1  weekday
+   ## 2    NA 2012-10-01     0005                     0  weekday
+   ## 3    NA 2012-10-01     0010                     0  weekday
+   ## 4    NA 2012-10-01     0015                     0  weekday
+   ## 5    NA 2012-10-01     0020                     0  weekday
+   ## 6    NA 2012-10-01     0025                     2  weekday
    ```
    
    ```r
@@ -90,13 +127,13 @@ The steps for loading and processing the data are the following:
    ```
    
    ```
-   ##       steps       date interval avg_steps_in_interval weekday_number
-   ## 17563    NA 2012-11-30     2330                     2              5
-   ## 17564    NA 2012-11-30     2335                     4              5
-   ## 17565    NA 2012-11-30     2340                     3              5
-   ## 17566    NA 2012-11-30     2345                     0              5
-   ## 17567    NA 2012-11-30     2350                     0              5
-   ## 17568    NA 2012-11-30     2355                     1              5
+   ##       steps       date interval avg_steps_in_interval day_type
+   ## 17563    NA 2012-11-30     2330                     2  weekday
+   ## 17564    NA 2012-11-30     2335                     4  weekday
+   ## 17565    NA 2012-11-30     2340                     3  weekday
+   ## 17566    NA 2012-11-30     2345                     0  weekday
+   ## 17567    NA 2012-11-30     2350                     0  weekday
+   ## 17568    NA 2012-11-30     2355                     1  weekday
    ```
 
 
@@ -105,13 +142,19 @@ The steps for loading and processing the data are the following:
 1. We create a summary data frame with the total number of steps for each day:
    
    ```r
-   data.summary <- as.data.frame(unique(data$date))
-   colnames(data.summary)[1] <- "date"
-   data.steps_by_day <- split(data$steps, data$date)
-   data.summary <- cbind(data.summary, as.integer(lapply(data.steps_by_day, sum, 
-       na.rm = TRUE)))
-   colnames(data.summary)[2] <- "total_steps"
-   head(data.summary)
+   # Create the auxiliary data frame:
+   data.summary_by_date <- as.data.frame(unique(data$date))
+   colnames(data.summary_by_date)[ncol(data.summary_by_date)] <- "date"
+   
+   # Split the data by 'date':
+   data.steps_by_date <- split(data$steps, data$date)
+   
+   # Calculate the average steps by each 'date', across all intervals, and
+   # store them in the auxiliary data frame:
+   data.summary_by_date <- data.frame(data.summary_by_date, as.integer(lapply(data.steps_by_date, 
+       sum, na.rm = TRUE)))
+   colnames(data.summary_by_date)[ncol(data.summary_by_date)] <- "total_steps"
+   head(data.summary_by_date)
    ```
    
    ```
@@ -128,17 +171,17 @@ The steps for loading and processing the data are the following:
 2. With this, it is easy to present a histogram of the number of steps per day:
    
    ```r
-   hist(data.summary$total_steps, breaks = 10, col = "green", main = "Frequency of days by total number of steps", 
+   hist(data.summary_by_date$total_steps, breaks = 10, col = "green", main = "Frequency of days by total number of steps", 
        xlab = "Total number of steps per day", ylab = "Number of days")
    ```
    
-   ![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7.png) 
+   ![plot of chunk sect2_2](figure/sect2_2.png) 
 
 
 3. And we can also calculate the mean and median total number of steps for all the days:
    
    ```r
-   mean(data.summary$total_steps)
+   mean(data.summary_by_date$total_steps)
    ```
    
    ```
@@ -146,7 +189,7 @@ The steps for loading and processing the data are the following:
    ```
    
    ```r
-   median(data.summary$total_steps)
+   median(data.summary_by_date$total_steps)
    ```
    
    ```
@@ -156,7 +199,7 @@ The steps for loading and processing the data are the following:
 
 ## What is the average daily activity pattern?
 
-1. Here it is useful the precalculated data by 5-minutes interval to show the time series:
+1. Here it is useful the precalculated averages by 5-minutes interval to show the time series:
    
    ```r
    plot(unique(data$interval), data.avg_steps_by_interval, type = "l", col = "blue", 
@@ -164,7 +207,7 @@ The steps for loading and processing the data are the following:
        ylab = "Steps")
    ```
    
-   ![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9.png) 
+   ![plot of chunk sect3_1](figure/sect3_1.png) 
 
 
 2. As for the calculation of the 5-minute interval with the maximum number of steps on average, the maximum value of steps taken is...
@@ -196,25 +239,23 @@ The steps for loading and processing the data are the following:
    ```
    
    ```
-   ## [1] 835
+   ## [1] "0835"
    ```
 
 
-   ... that is, in time format:
+   ... that is, in time format (taking into account the preformatting of the 'interval' column):
    
    ```r
    max.interval.name <- as.character(unique(data$interval)[which.max(data.avg_steps_by_interval)])
-   max.interval.minutes <- substr(max.interval.name, nchar(max.interval.name) - 
-       1, nchar(max.interval.name))
-   max.interval.hour <- substr(max.interval.name, 1, nchar(max.interval.name) - 
-       nchar(max.interval.minutes))
+   max.interval.hour <- substr(max.interval.name, 1, 2)
+   max.interval.minutes <- substr(max.interval.name, 3, 4)
    cat("The interval with the average maximum number of steps (", max(data.avg_steps_by_interval), 
        " steps) occurred at ", max.interval.hour, " hours and ", max.interval.minutes, 
        " minutes")
    ```
    
    ```
-   ## The interval with the average maximum number of steps ( 206  steps) occurred at  8  hours and  35  minutes
+   ## The interval with the average maximum number of steps ( 206  steps) occurred at  08  hours and  35  minutes
    ```
 
 
@@ -238,21 +279,25 @@ The steps for loading and processing the data are the following:
    ```
    
    ```
-   ##   steps       date interval avg_steps_in_interval weekday_number
-   ## 1    NA 2012-10-01        0                     1              1
-   ## 2    NA 2012-10-01        5                     0              1
-   ## 3    NA 2012-10-01       10                     0              1
-   ## 4    NA 2012-10-01       15                     0              1
-   ## 5    NA 2012-10-01       20                     0              1
-   ## 6    NA 2012-10-01       25                     2              1
+   ##   steps       date interval avg_steps_in_interval day_type
+   ## 1    NA 2012-10-01     0000                     1  weekday
+   ## 2    NA 2012-10-01     0005                     0  weekday
+   ## 3    NA 2012-10-01     0010                     0  weekday
+   ## 4    NA 2012-10-01     0015                     0  weekday
+   ## 5    NA 2012-10-01     0020                     0  weekday
+   ## 6    NA 2012-10-01     0025                     2  weekday
    ```
 
 
 3. Now we substitute the missing values using these averages:
    
    ```r
-   data <- cbind(data, data$steps)
-   colnames(data)[6] <- "steps_adj"
+   # Create a new column, initially with the original data for steps:
+   data <- data.frame(data, data$steps)
+   colnames(data)[ncol(data)] <- "steps_adj"
+   
+   # Substitute missing values using the average by interval (throws a
+   # warning):
    data$steps_adj[is.na(data$steps)] <- data$avg_steps_in_interval
    ```
    
@@ -260,40 +305,57 @@ The steps for loading and processing the data are the following:
    ## Warning: número de items para para sustituir no es un múltiplo de la
    ## longitud del reemplazo
    ```
-
-
-3. Thus we can create a new histogram for the total number of steps taken by day:
    
    ```r
+   head(data)
+   ```
+   
+   ```
+   ##   steps       date interval avg_steps_in_interval day_type steps_adj
+   ## 1    NA 2012-10-01     0000                     1  weekday         1
+   ## 2    NA 2012-10-01     0005                     0  weekday         0
+   ## 3    NA 2012-10-01     0010                     0  weekday         0
+   ## 4    NA 2012-10-01     0015                     0  weekday         0
+   ## 5    NA 2012-10-01     0020                     0  weekday         0
+   ## 6    NA 2012-10-01     0025                     2  weekday         2
+   ```
+
+
+4. Thus we can create a new histogram for the total number of steps taken by day:
+   
+   ```r
+   # Calculate the new averages by 'date' (across all intervals):
    data.steps_by_day_adj <- split(data$steps_adj, data$date)
-   data.summary <- cbind(data.summary, as.integer(lapply(data.steps_by_day_adj, 
+   data.summary_by_date <- data.frame(data.summary_by_date, as.integer(lapply(data.steps_by_day_adj, 
        sum, na.rm = TRUE)))
-   colnames(data.summary)[3] <- "total_steps_adj"
-   hist(data.summary$total_steps_adj, breaks = 10, col = "orange", main = "Frequency of days by total number of steps (adjusted)", 
+   colnames(data.summary_by_date)[ncol(data.summary_by_date)] <- "total_steps_adj"
+   
+   # Display the actual histogram:
+   hist(data.summary_by_date$total_steps_adj, breaks = 10, col = "orange", main = "Frequency of days by total number of steps (adjusted)", 
        xlab = "Total number of steps per day (adjusted)", ylab = "Number of days")
    ```
    
-   ![plot of chunk unnamed-chunk-17](figure/unnamed-chunk-17.png) 
+   ![plot of chunk sect4_4](figure/sect4_4.png) 
 
 
-4. And compare the two histograms:
+5. And compare the two histograms:
    
    ```r
    library(ggplot2)
-   p <- ggplot(data.summary, aes(x = total_steps)) + geom_histogram(fill = "green", 
+   p <- ggplot(data.summary_by_date, aes(x = total_steps)) + geom_histogram(fill = "green", 
        alpha = 0.4) + geom_histogram(aes(x = total_steps_adj), fill = "orange", 
        alpha = 0.4) + labs(title = "Frequency of days by total number of steps") + 
        xlab("Total number of steps per day") + ylab("Number of days")
    suppressMessages(print(p))
    ```
    
-   ![plot of chunk unnamed-chunk-18](figure/unnamed-chunk-18.png) 
+   ![plot of chunk sect4_5](figure/sect4_5.png) 
 
 
-5. We can now calculate the new mean and median total number of steps for all the days:
+6. We can now calculate the new mean and median total number of steps for all the days:
    
    ```r
-   mean(data.summary$total_steps_adj)
+   mean(data.summary_by_date$total_steps_adj)
    ```
    
    ```
@@ -301,7 +363,7 @@ The steps for loading and processing the data are the following:
    ```
    
    ```r
-   median(data.summary$total_steps_adj)
+   median(data.summary_by_date$total_steps_adj)
    ```
    
    ```
@@ -309,6 +371,81 @@ The steps for loading and processing the data are the following:
    ```
 
 
-6. We observe that these values are higher than the ones calculated above; and the same occurs in the histogram, with one of the bars 'receiving' the days wich previously had a small number of steps while now they compute a much higher value (and always the same given that we have applied the 5-minutes average values to fill in the missing values)
+7. We observe that these values are higher than the ones calculated above; however, looking at the histograms we find that it is fact only one of the bars that has 'received' the days wich previously had a small number of steps: it is this bar that increases the values of the mean and the median.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+1. The calculation of the factor of 'weekdays'/'weekends' was performed above; now first we obtain the average number of steps for the 5-minutes intervals, averaged across either weekdays or weekends, working with the column that includes missing values:
+   
+   ```r
+   # Auxiliary data frame:
+   data.summary_by_interval <- as.data.frame(unique(data$interval))
+   colnames(data.summary_by_interval)[ncol(data.summary_by_interval)] <- "interval"
+   
+   # Splitting the data by both 'interval' and 'day_type' (weekdays or
+   # weekends):
+   data.steps_by_interval_by_day_type <- split(data$steps_adj, list(data$interval, 
+       data$day_type))
+   
+   # Calculate the average steps by 'interval', across all days (separately for
+   # weekdays and weekends):
+   data.avg_steps_by_interval_by_day_type <- as.integer(lapply(data.steps_by_interval_by_day_type, 
+       mean))
+   
+   # Create auxiliary data frames for data for weekdays...:
+   data.summary_by_interval_wd <- data.frame(data.summary_by_interval, data.avg_steps_by_interval_by_day_type[1:288])
+   colnames(data.summary_by_interval_wd)[ncol(data.summary_by_interval_wd)] <- "avg_steps"
+   data.summary_by_interval_wd <- data.frame(data.summary_by_interval_wd, "weekday")
+   colnames(data.summary_by_interval_wd)[ncol(data.summary_by_interval_wd)] <- "day_type"
+   
+   # ... and for weekends:
+   data.summary_by_interval_we <- data.frame(data.summary_by_interval, data.avg_steps_by_interval_by_day_type[289:576])
+   colnames(data.summary_by_interval_we)[ncol(data.summary_by_interval_we)] <- "avg_steps"
+   data.summary_by_interval_we <- data.frame(data.summary_by_interval_we, "weekend")
+   colnames(data.summary_by_interval_we)[ncol(data.summary_by_interval_we)] <- "day_type"
+   
+   # Merge both auxiliary data frames into one:
+   data.summary_by_interval_wd_we <- rbind(data.summary_by_interval_wd, data.summary_by_interval_we)
+   head(data.summary_by_interval_wd_we)
+   ```
+   
+   ```
+   ##   interval avg_steps day_type
+   ## 1     0000         2  weekday
+   ## 2     0005         0  weekday
+   ## 3     0010         0  weekday
+   ## 4     0015         0  weekday
+   ## 5     0020         0  weekday
+   ## 6     0025         1  weekday
+   ```
+   
+   ```r
+   tail(data.summary_by_interval_wd_we)
+   ```
+   
+   ```
+   ##     interval avg_steps day_type
+   ## 571     2330         1  weekend
+   ## 572     2335        11  weekend
+   ## 573     2340         6  weekend
+   ## 574     2345         1  weekend
+   ## 575     2350         0  weekend
+   ## 576     2355         0  weekend
+   ```
+
+
+2. Now we present the required plot, taking advantage of the 'day_type' factor in the new data frame:
+   
+   ```r
+   library(lattice)
+   xyplot(avg_steps ~ interval | day_type, data = data.summary_by_interval_wd_we, 
+       type = c("l", "l"), layout = c(1, 2), xlab = "Interval", ylab = "Number of steps", 
+       main = "Comparison of the activity patterns")
+   ```
+   
+   ![plot of chunk sect5_2](figure/sect5_2.png) 
+
+
+3. **And that's all, folks!**
+
+
