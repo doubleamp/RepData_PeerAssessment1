@@ -1,5 +1,5 @@
 # Reproducible Research: Peer Assessment 1
-Prepared by Amperio; last version created Thu May 15 03:27:52 2014
+Prepared by Amperio; last version created Thu May 15 04:00:03 2014
 
 
 
@@ -53,9 +53,9 @@ The steps for loading and processing the data are the following:
    
    ```r
    data.steps_by_interval <- split(data$steps, data$interval)
-   data.mean_steps_by_interval <- as.integer(lapply(data.steps_by_interval, mean, 
+   data.avg_steps_by_interval <- as.integer(lapply(data.steps_by_interval, mean, 
        na.rm = TRUE))
-   data <- cbind(data, data.mean_steps_by_interval)
+   data <- cbind(data, data.avg_steps_by_interval)
    colnames(data)[4] <- "avg_steps_in_interval"
    ```
 
@@ -155,6 +155,67 @@ The steps for loading and processing the data are the following:
 
 
 ## What is the average daily activity pattern?
+
+1. Here it is useful the precalculated data by 5-minutes interval to show the time series:
+   
+   ```r
+   plot(unique(data$interval), data.avg_steps_by_interval, type = "l", col = "blue", 
+       main = "Average number of steps taken by 5-minutes interval", xlab = "Interval", 
+       ylab = "Steps")
+   ```
+   
+   ![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9.png) 
+
+
+2. As for the calculation of the 5-minute interval with the maximum number of steps on average, the maximum value of steps taken is...
+   
+   ```r
+   max(data.avg_steps_by_interval)
+   ```
+   
+   ```
+   ## [1] 206
+   ```
+
+
+   ... which is obtained in the interval number ...
+   
+   ```r
+   which.max(data.avg_steps_by_interval)
+   ```
+   
+   ```
+   ## [1] 104
+   ```
+
+
+   ... which corresponds to interval ...
+   
+   ```r
+   unique(data$interval)[which.max(data.avg_steps_by_interval)]
+   ```
+   
+   ```
+   ## [1] 835
+   ```
+
+
+   ... that is, in time format:
+   
+   ```r
+   max.interval.name <- as.character(unique(data$interval)[which.max(data.avg_steps_by_interval)])
+   max.interval.minutes <- substr(max.interval.name, nchar(max.interval.name) - 
+       1, nchar(max.interval.name))
+   max.interval.hour <- substr(max.interval.name, 1, nchar(max.interval.name) - 
+       nchar(max.interval.minutes))
+   cat("The interval with the average maximum number of steps (", max(data.avg_steps_by_interval), 
+       " steps) occurred at ", max.interval.hour, " hours and ", max.interval.minutes, 
+       " minutes")
+   ```
+   
+   ```
+   ## The interval with the average maximum number of steps ( 206  steps) occurred at  8  hours and  35  minutes
+   ```
 
 
 

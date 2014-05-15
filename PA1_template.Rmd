@@ -25,8 +25,8 @@ The steps for loading and processing the data are the following:
 3. As it will be useful later in the analysis, we calculate the average number of steps by 5-minutes intervals across all the days, and store it as a separate column in the data frame:
    ```{r}
    data.steps_by_interval <- split(data$steps, data$interval)
-   data.mean_steps_by_interval <- as.integer(lapply(data.steps_by_interval, mean, na.rm=TRUE))
-   data <- cbind(data, data.mean_steps_by_interval)
+   data.avg_steps_by_interval <- as.integer(lapply(data.steps_by_interval, mean, na.rm=TRUE))
+   data <- cbind(data, data.avg_steps_by_interval)
    colnames(data)[4] <- "avg_steps_in_interval"
    ```
 
@@ -68,6 +68,33 @@ The steps for loading and processing the data are the following:
 
 ## What is the average daily activity pattern?
 
+1. Here it is useful the precalculated data by 5-minutes interval to show the time series:
+   ```{r}
+   plot(unique(data$interval), data.avg_steps_by_interval, type = "l", col = "blue", main = "Average number of steps taken by 5-minutes interval", xlab = "Interval", ylab = "Steps")
+   ```
+
+2. As for the calculation of the 5-minute interval with the maximum number of steps on average, the maximum value of steps taken is...
+   ```{r}
+   max(data.avg_steps_by_interval)
+   ```
+
+   ... which is obtained in the interval number ...
+   ```{r}
+   which.max(data.avg_steps_by_interval)
+   ```
+
+   ... which corresponds to interval ...
+   ```{r}
+   unique(data$interval)[which.max(data.avg_steps_by_interval)]
+   ```
+
+   ... that is, in time format:
+   ```{r}
+   max.interval.name <- as.character(unique(data$interval)[which.max(data.avg_steps_by_interval)])
+   max.interval.minutes <- substr(max.interval.name, nchar(max.interval.name)-1, nchar(max.interval.name))
+   max.interval.hour <- substr(max.interval.name, 1, nchar(max.interval.name)-nchar(max.interval.minutes))
+   cat("The interval with the average maximum number of steps (", max(data.avg_steps_by_interval), " steps) occurred at ", max.interval.hour, " hours and ", max.interval.minutes, " minutes")
+   ```
 
 
 ## Imputing missing values
