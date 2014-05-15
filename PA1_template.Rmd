@@ -22,7 +22,7 @@ The steps for loading and processing the data are the following:
    tail(data)
    ```
 
-3. As it will be useful later in the analysis, we calculate the average number of steps by 5-minutes intervals accross all the days, and store it as a separate column in the data frame:
+3. As it will be useful later in the analysis, we calculate the average number of steps by 5-minutes intervals across all the days, and store it as a separate column in the data frame:
    ```{r}
    data.steps_by_interval <- split(data$steps, data$interval)
    data.mean_steps_by_interval <- as.integer(lapply(data.steps_by_interval, mean, na.rm=TRUE))
@@ -45,7 +45,26 @@ The steps for loading and processing the data are the following:
 
 ## What is mean total number of steps taken per day?
 
+1. We create a summary data frame with the total number of steps for each day:
+   ```{r}
+   data.summary <- as.data.frame(unique(data$date))
+   colnames(data.summary)[1] <- "date"
+   data.steps_by_day <- split(data$steps, data$date)
+   data.summary <- cbind(data.summary, as.integer(lapply(data.steps_by_day, sum, na.rm = TRUE)))
+   colnames(data.summary)[2] <- "total_steps"
+   head(data.summary)
+   ```
 
+2. With this, it is easy to present a histogram of the number of steps per day:
+   ```{r}
+   hist(data.summary$total_steps, breaks = 10, col = "green", main = "Frequency of days by total number of steps", xlab = "Total number of steps per day", ylab = "Number of days")
+   ```
+
+3. And we can also calculate the mean and median total number of steps for all the days:
+   ```{r}
+   mean(data.summary$total_steps)
+   median(data.summary$total_steps)
+   ```
 
 ## What is the average daily activity pattern?
 

@@ -1,5 +1,5 @@
 # Reproducible Research: Peer Assessment 1
-Prepared by Amperio; last version created Thu May 15 01:41:47 2014
+Prepared by Amperio; last version created Thu May 15 03:27:52 2014
 
 
 
@@ -49,7 +49,7 @@ The steps for loading and processing the data are the following:
    ```
 
 
-3. As it will be useful later in the analysis, we calculate the average number of steps by 5-minutes intervals accross all the days, and store it as a separate column in the data frame:
+3. As it will be useful later in the analysis, we calculate the average number of steps by 5-minutes intervals across all the days, and store it as a separate column in the data frame:
    
    ```r
    data.steps_by_interval <- split(data$steps, data$interval)
@@ -102,6 +102,56 @@ The steps for loading and processing the data are the following:
 
 ## What is mean total number of steps taken per day?
 
+1. We create a summary data frame with the total number of steps for each day:
+   
+   ```r
+   data.summary <- as.data.frame(unique(data$date))
+   colnames(data.summary)[1] <- "date"
+   data.steps_by_day <- split(data$steps, data$date)
+   data.summary <- cbind(data.summary, as.integer(lapply(data.steps_by_day, sum, 
+       na.rm = TRUE)))
+   colnames(data.summary)[2] <- "total_steps"
+   head(data.summary)
+   ```
+   
+   ```
+   ##         date total_steps
+   ## 1 2012-10-01           0
+   ## 2 2012-10-02         126
+   ## 3 2012-10-03       11352
+   ## 4 2012-10-04       12116
+   ## 5 2012-10-05       13294
+   ## 6 2012-10-06       15420
+   ```
+
+
+2. With this, it is easy to present a histogram of the number of steps per day:
+   
+   ```r
+   hist(data.summary$total_steps, breaks = 10, col = "green", main = "Frequency of days by total number of steps", 
+       xlab = "Total number of steps per day", ylab = "Number of days")
+   ```
+   
+   ![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7.png) 
+
+
+3. And we can also calculate the mean and median total number of steps for all the days:
+   
+   ```r
+   mean(data.summary$total_steps)
+   ```
+   
+   ```
+   ## [1] 9354
+   ```
+   
+   ```r
+   median(data.summary$total_steps)
+   ```
+   
+   ```
+   ## [1] 10395
+   ```
 
 
 ## What is the average daily activity pattern?
