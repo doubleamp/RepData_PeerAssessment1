@@ -96,9 +96,46 @@ The steps for loading and processing the data are the following:
    cat("The interval with the average maximum number of steps (", max(data.avg_steps_by_interval), " steps) occurred at ", max.interval.hour, " hours and ", max.interval.minutes, " minutes")
    ```
 
-
 ## Imputing missing values
 
+1. The number of missing values for the number of steps in the original data is:
+   ```{r}
+   sum(is.na(data$steps))
+   ```
 
+2. To fill in these missing values, we use the average for each 5-minutes interval across all the days; this was precalculated when the data was read (see above) and stored in the 'avg_steps_in_interval' column:
+   ```{r}
+   head(data)
+   ```
+
+3. Now we substitute the missing values using these averages:
+   ```{r}
+   data <- cbind(data, data$steps)
+   colnames(data)[6] <- "steps_adj"
+   data$steps_adj[is.na(data$steps)] <- data$avg_steps_in_interval
+   ```
+
+3. Thus we can create a new histogram for the total number of steps taken by day:
+   ```{r}
+   data.steps_by_day_adj <- split(data$steps_adj, data$date)
+   data.summary <- cbind(data.summary, as.integer(lapply(data.steps_by_day_adj, sum, na.rm = TRUE)))
+   colnames(data.summary)[3] <- "total_steps_adj"
+   hist(data.summary$total_steps_adj, breaks = 10, col = "orange", main = "Frequency of days by total number of steps (adjusted)", xlab = "Total number of steps per day (adjusted)", ylab = "Number of days")
+   ```
+
+4. And compare the two histograms:
+   ```{r}
+   library(ggplot2)
+   p <- ggplot(data.summary, aes(x = total_steps)) + geom_histogram(fill = "green", alpha = 0.4) + geom_histogram (aes(x = total_steps_adj), fill = "orange", alpha = 0.4) + labs(title = "Frequency of days by total number of steps") + xlab("Total number of steps per day") + ylab("Number of days")
+   suppressMessages(print(p))
+   ```
+
+5. We can now calculate the new mean and median total number of steps for all the days:
+   ```{r}
+   mean(data.summary$total_steps_adj)
+   median(data.summary$total_steps_adj)
+   ```
+
+6. We observe that these values are higher than the ones calculated above; and the same occurs in the histogram, with one of the bars 'receiving' the days wich previously had a small number of steps while now they compute a much higher value (and always the same given that we have applied the 5-minutes average values to fill in the missing values)
 
 ## Are there differences in activity patterns between weekdays and weekends?

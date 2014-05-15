@@ -1,5 +1,5 @@
 # Reproducible Research: Peer Assessment 1
-Prepared by Amperio; last version created Thu May 15 04:00:03 2014
+Prepared by Amperio; last version created Thu May 15 05:34:42 2014
 
 
 
@@ -218,9 +218,97 @@ The steps for loading and processing the data are the following:
    ```
 
 
-
 ## Imputing missing values
 
+1. The number of missing values for the number of steps in the original data is:
+   
+   ```r
+   sum(is.na(data$steps))
+   ```
+   
+   ```
+   ## [1] 2304
+   ```
 
+
+2. To fill in these missing values, we use the average for each 5-minutes interval across all the days; this was precalculated when the data was read (see above) and stored in the 'avg_steps_in_interval' column:
+   
+   ```r
+   head(data)
+   ```
+   
+   ```
+   ##   steps       date interval avg_steps_in_interval weekday_number
+   ## 1    NA 2012-10-01        0                     1              1
+   ## 2    NA 2012-10-01        5                     0              1
+   ## 3    NA 2012-10-01       10                     0              1
+   ## 4    NA 2012-10-01       15                     0              1
+   ## 5    NA 2012-10-01       20                     0              1
+   ## 6    NA 2012-10-01       25                     2              1
+   ```
+
+
+3. Now we substitute the missing values using these averages:
+   
+   ```r
+   data <- cbind(data, data$steps)
+   colnames(data)[6] <- "steps_adj"
+   data$steps_adj[is.na(data$steps)] <- data$avg_steps_in_interval
+   ```
+   
+   ```
+   ## Warning: número de items para para sustituir no es un múltiplo de la
+   ## longitud del reemplazo
+   ```
+
+
+3. Thus we can create a new histogram for the total number of steps taken by day:
+   
+   ```r
+   data.steps_by_day_adj <- split(data$steps_adj, data$date)
+   data.summary <- cbind(data.summary, as.integer(lapply(data.steps_by_day_adj, 
+       sum, na.rm = TRUE)))
+   colnames(data.summary)[3] <- "total_steps_adj"
+   hist(data.summary$total_steps_adj, breaks = 10, col = "orange", main = "Frequency of days by total number of steps (adjusted)", 
+       xlab = "Total number of steps per day (adjusted)", ylab = "Number of days")
+   ```
+   
+   ![plot of chunk unnamed-chunk-17](figure/unnamed-chunk-17.png) 
+
+
+4. And compare the two histograms:
+   
+   ```r
+   library(ggplot2)
+   p <- ggplot(data.summary, aes(x = total_steps)) + geom_histogram(fill = "green", 
+       alpha = 0.4) + geom_histogram(aes(x = total_steps_adj), fill = "orange", 
+       alpha = 0.4) + labs(title = "Frequency of days by total number of steps") + 
+       xlab("Total number of steps per day") + ylab("Number of days")
+   suppressMessages(print(p))
+   ```
+   
+   ![plot of chunk unnamed-chunk-18](figure/unnamed-chunk-18.png) 
+
+
+5. We can now calculate the new mean and median total number of steps for all the days:
+   
+   ```r
+   mean(data.summary$total_steps_adj)
+   ```
+   
+   ```
+   ## [1] 10750
+   ```
+   
+   ```r
+   median(data.summary$total_steps_adj)
+   ```
+   
+   ```
+   ## [1] 10641
+   ```
+
+
+6. We observe that these values are higher than the ones calculated above; and the same occurs in the histogram, with one of the bars 'receiving' the days wich previously had a small number of steps while now they compute a much higher value (and always the same given that we have applied the 5-minutes average values to fill in the missing values)
 
 ## Are there differences in activity patterns between weekdays and weekends?
